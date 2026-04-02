@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Предложить статью — VisualIQ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'theory_list' %}">Статьи</a>
+                </li>
+                <li class="breadcrumb-item active">Новая статья</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow">
+            <div class="card-header">
+                <h2 class="mb-0">
+                    <i class="bi bi-pencil-square"></i>
+                    Предложить статью
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Статья будет отправлена на модерацию
+                    и появится в каталоге после одобрения.
+                    Поддерживается Markdown-разметка.
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-success mt-3">
+                        <i class="bi bi-send"></i> Отправить
+                    </button>
+                    <a href="{% url 'theory_list' %}"
+                       class="btn btn-outline-secondary mt-3">
+                        Отмена
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,8 @@
 """Views for the VisualIQ application."""
 
+import math
+import random
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -7,6 +10,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages as django_messages
 
 from .models import UserProfile, TheoryItem, GameSession
+from .forms import TheorySubmitForm, HexAnswerForm
 
 
 def home(request):
@@ -59,6 +63,104 @@ def theory_detail(request, pk):
         'item': item,
         'is_unlocked': is_unlocked,
         'profile': profile,
+    })
+
+
+@login_required
+def theory_submit(request):
+    """Handle article submission."""
+    if request.method == 'POST':
+        form = TheorySubmitForm(request.POST)
+        if form.is_valid():
+            theory = form.save(commit=False)
+            theory.is_approved = False
+            theory.save()
+            django_messages.success(
+                request,
+                'Спасибо! Ваша статья отправлена на модерацию.'
+            )
+            return redirect('theory_list')
+    else:
+        form = TheorySubmitForm()
+    return render(request, 'core/theory_submit.html', {'form': form})
+
+
+def generate_random_hex():
+    """Generate a random HEX color code string."""
+    red = random.randint(0, 255)
+    green = random.randint(0, 255)
+    blue = random.randint(0, 255)
+    return f'#{red:02X}{green:02X}{blue:02X}'
+
+
+def hex_color_distance(hex1, hex2):
+    """Calculate Euclidean distance between two HEX colors."""
+    r1, g1, b1 = int(hex1[1:3], 16), int(hex1[3:5], 16), int(hex1[5:7], 16)
+    r2, g2, b2 = int(hex2[1:3], 16), int(hex2[3:5], 16), int(hex2[5:7], 16)
+    return math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2)
+
+
+def calculate_hex_points(accuracy):
+    """Convert accuracy percentage to coin reward."""
+    if accuracy >= 90:
+        return 5
+    if accuracy >= 70:
+        return 3
+    if accuracy >= 50:
+        return 2
+    return 0
+
+
+@login_required
+def hex_game(request):
+    """Handle the HEX Sniper game."""
+    max_rgb_distance = 441.67
+
+    if request.method == 'POST':
+        form = HexAnswerForm(request.POST)
+        correct_hex = request.session.get('correct_hex', '#000000')
+
+        if form.is_valid():
+            user_hex = form.cleaned_data['hex_code']
+            distance = hex_color_distance(correct_hex, user_hex)
+            accuracy = max(0, 100 - (distance / max_rgb_distance * 100))
+            points = calculate_hex_points(accuracy)
+
+            profile, _ = UserProfile.objects.get_or_create(
+                user=request.user
+            )
+            profile.coins += points
+            profile.save()
+
+            GameSession.objects.create(
+                user=request.user,
+                game_type='HEX',
+                points_earned=points,
+            )
+
+            new_color = generate_random_hex()
+            request.session['correct_hex'] = new_color
+
+            return render(request, 'core/hex_game.html', {
+                'form': HexAnswerForm(),
+                'color': new_color,
+                'result': True,
+                'correct_hex': correct_hex,
+                'user_hex': user_hex,
+                'accuracy': round(accuracy, 1),
+                'points': points,
+            })
+
+        return render(request, 'core/hex_game.html', {
+            'form': form,
+            'color': correct_hex,
+        })
+
+    color = generate_random_hex()
+    request.session['correct_hex'] = color
+    return render(request, 'core/hex_game.html', {
+        'form': HexAnswerForm(),
+        'color': color,
     })
 
 
