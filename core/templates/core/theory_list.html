@@ -18,8 +18,7 @@
     <div class="col-md-6 col-lg-4">
         <div class="card h-100 card-game">
             {% if item.cover %}
-                <img src="{{ item.cover.url }}"
-                     class="card-img-top"
+                <img src="{{ item.cover.url }}" class="card-img-top"
                      alt="{{ item.title }}"
                      style="height: 180px; object-fit: cover;">
             {% endif %}
@@ -32,14 +31,25 @@
                     {% endif %}
                     {{ item.title }}
                 </h5>
-                <p class="card-text text-muted">
-                    {{ item.content|truncatewords:20 }}
+                <p class="card-text text-muted small">
+                    {{ item.content|truncatewords:15 }}
                 </p>
+                <small class="text-muted">
+                    {% if item.author %}
+                        <i class="bi bi-person"></i>
+                        {{ item.author.username }}
+                    {% else %}
+                        <i class="bi bi-shield-check"></i>
+                        Редакция VisualIQ
+                    {% endif %}
+                </small>
             </div>
-            <div class="card-footer d-flex justify-content-between align-items-center">
+            <div class="card-footer d-flex justify-content-between
+                        align-items-center">
                 {% if item.price > 0 %}
                     <span class="badge bg-warning text-dark">
-                        {{ item.price }} <i class="bi bi-coin"></i>
+                        {{ item.price }}
+                        <i class="bi bi-coin"></i>
                     </span>
                 {% else %}
                     <span class="badge bg-success">Бесплатно</span>
@@ -53,7 +63,7 @@
 </div>
 {% else %}
 <div class="alert alert-info">
-    <i class="bi bi-info-circle"></i> Статей пока нет.
+    Статей пока нет.
 </div>
 {% endif %}
 {% endblock %}

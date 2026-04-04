@@ -1,7 +1,9 @@
 """Forms with validation for VisualIQ application."""
 
 import re
+
 from django import forms
+
 from .models import TheoryItem
 
 
@@ -40,8 +42,8 @@ class TheorySubmitForm(forms.ModelForm):
         content = self.cleaned_data.get('content', '')
         if len(content) < 50:
             raise forms.ValidationError(
-                'Статья слишком короткая для образовательного материала. '
-                'Добавьте больше деталей (минимум 50 символов).'
+                'Статья слишком короткая для образовательного '
+                'материала. Минимум 50 символов.'
             )
         return content
 
@@ -65,6 +67,25 @@ class HexAnswerForm(forms.Form):
         if not re.match(pattern, value):
             raise forms.ValidationError(
                 'Неверный формат. Ожидается код вида #RRGGBB, '
-                'состоящий из символа # и 6 букв A-F или цифр 0-9.'
+                'состоящий из # и 6 символов A-F / 0-9.'
             )
         return value.upper()
+
+
+class AIAnswerForm(forms.Form):
+    """Form for selecting which image is AI-generated."""
+
+    CHOICES = [('A', 'Изображение A'), ('B', 'Изображение B')]
+    answer = forms.ChoiceField(
+        choices=CHOICES,
+        widget=forms.RadioSelect,
+        label='Какое лицо сгенерировано ИИ?',
+    )
+
+
+class HSLAnswerForm(forms.Form):
+    """Form for submitting HSL color values via sliders."""
+
+    hue = forms.IntegerField(min_value=0, max_value=360)
+    saturation = forms.IntegerField(min_value=0, max_value=100)
+    lightness = forms.IntegerField(min_value=0, max_value=100)

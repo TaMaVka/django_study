@@ -1,9 +1,7 @@
 """Database models for VisualIQ application."""
 
-import markdown as md
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.safestring import mark_safe
 
 
 class TheoryItem(models.Model):
@@ -16,6 +14,10 @@ class TheoryItem(models.Model):
     content = models.TextField(verbose_name='Содержание (Markdown)')
     price = models.IntegerField(default=1, verbose_name='Цена (монеты)')
     is_approved = models.BooleanField(default=False, verbose_name='Одобрено')
+    author = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='articles', verbose_name='Автор'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name='Дата создания'
     )
@@ -28,15 +30,9 @@ class TheoryItem(models.Model):
     def __str__(self):
         return str(self.title)
 
-    def content_as_html(self):
-        """Convert markdown content to safe HTML."""
-        return mark_safe(md.markdown(
-            self.content, extensions=['extra', 'nl2br']
-        ))
-
 
 class ArticleImage(models.Model):
-    """Image attached to a theory article for use in markdown content."""
+    """Image attached to a theory article for use in markdown."""
 
     article = models.ForeignKey(
         TheoryItem, on_delete=models.CASCADE, related_name='images'
@@ -88,8 +84,7 @@ class AITask(models.Model):
         upload_to='ai_faces/', verbose_name='Изображение B'
     )
     correct_answer = models.CharField(
-        max_length=1, choices=ANSWER_CHOICES,
-        verbose_name='Где ИИ'
+        max_length=1, choices=ANSWER_CHOICES, verbose_name='Где ИИ'
     )
     explanation = models.TextField(verbose_name='Объяснение')
 
@@ -104,7 +99,11 @@ class AITask(models.Model):
 class GameSession(models.Model):
     """Record of a single game played by a user."""
 
-    GAME_TYPES = [('HEX', 'HEX-Снайпер'), ('AI', 'Детектор ИИ')]
+    GAME_TYPES = [
+        ('HEX', 'HEX-Снайпер'),
+        ('AI', 'Детектор ИИ'),
+        ('HSL', 'HSL-Мастер'),
+    ]
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='game_sessions'

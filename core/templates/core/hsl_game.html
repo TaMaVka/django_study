@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}HSL-Мастер — VisualIQ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-sliders"></i> HSL-Мастер
+        </h1>
+        <p class="text-center text-muted">
+            Подберите H, S и L ползунками, чтобы воспроизвести цвет.
+        </p>
+
+        {% if result %}
+        <div class="card mb-4
+             border-{% if points >= 3 %}success{% elif points >= 2 %}warning{% else %}danger{% endif %}">
+            <div class="card-body text-center">
+                <h4>
+                    {% if points >= 5 %}Идеально!
+                    {% elif points >= 3 %}Хороший глаз!
+                    {% elif points >= 2 %}Неплохо!
+                    {% else %}Попробуйте ещё!{% endif %}
+                </h4>
+                <div class="d-flex justify-content-center
+                            align-items-center gap-4 my-3">
+                    <div>
+                        <div class="result-swatch"
+                             style="background-color:
+                             hsl({{ correct_h }},{{ correct_s }}%,{{ correct_l }}%);">
+                        </div>
+                        <small class="d-block mt-1">
+                            {{ correct_h }}° / {{ correct_s }}%
+                            / {{ correct_l }}%
+                        </small>
+                    </div>
+                    <div>
+                        <div class="result-swatch"
+                             style="background-color:
+                             hsl({{ user_h }},{{ user_s }}%,{{ user_l }}%);">
+                        </div>
+                        <small class="d-block mt-1">
+                            {{ user_h }}° / {{ user_s }}%
+                            / {{ user_l }}%
+                        </small>
+                    </div>
+                </div>
+                <p class="mb-1">
+                    Точность: <strong>{{ accuracy }}%</strong>
+                </p>
+                <p class="text-success fw-bold">
+                    +{{ points }} <i class="bi bi-coin text-warning"></i>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="text-center">Воспроизведите этот цвет:</h5>
+                <div class="color-swatch mx-auto"
+                     style="background-color:
+                     hsl({{ h }},{{ s }}%,{{ l }}%);"></div>
+
+                <h6 class="text-center mt-4">Ваш вариант:</h6>
+                <div class="color-swatch mx-auto mb-3"
+                     id="preview"
+                     style="background-color: hsl(180,50%,50%);">
+                </div>
+
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            H — оттенок:
+                            <span id="hv" class="text-primary">180</span>°
+                        </label>
+                        <input type="range" class="form-range"
+                               name="hue" id="hr"
+                               min="0" max="360" value="180"
+                               oninput="upd()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            S — насыщенность:
+                            <span id="sv" class="text-primary">50</span>%
+                        </label>
+                        <input type="range" class="form-range"
+                               name="saturation" id="sr"
+                               min="0" max="100" value="50"
+                               oninput="upd()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            L — светлота:
+                            <span id="lv" class="text-primary">50</span>%
+                        </label>
+                        <input type="range" class="form-range"
+                               name="lightness" id="lr"
+                               min="0" max="100" value="50"
+                               oninput="upd()">
+                    </div>
+                    <button type="submit"
+                            class="btn btn-primary btn-lg w-100 mt-2">
+                        <i class="bi bi-check-lg"></i> Проверить
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6>Начисление монет:</h6>
+                <ul class="mb-0 small text-muted">
+                    <li>Точность &ge; 90% &mdash; 5 монет</li>
+                    <li>Точность &ge; 70% &mdash; 3 монеты</li>
+                    <li>Точность &ge; 50% &mdash; 2 монеты</li>
+                    <li>Ниже 50% &mdash; 0 монет</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function upd(){
+    var h=document.getElementById('hr').value;
+    var s=document.getElementById('sr').value;
+    var l=document.getElementById('lr').value;
+    document.getElementById('hv').textContent=h;
+    document.getElementById('sv').textContent=s;
+    document.getElementById('lv').textContent=l;
+    document.getElementById('preview').style.backgroundColor=
+        'hsl('+h+','+s+'%,'+l+'%)';
+}
+</script>
+{% endblock %}

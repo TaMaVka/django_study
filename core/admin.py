@@ -33,11 +33,29 @@ class UserProfileAdmin(admin.ModelAdmin):
 class TheoryItemAdmin(admin.ModelAdmin):
     """Admin view for educational articles."""
 
-    list_display = ('title', 'price', 'is_approved', 'created_at')
+    list_display = (
+        'title', 'author', 'price', 'is_approved', 'created_at'
+    )
     list_filter = ('is_approved',)
     list_editable = ('is_approved', 'price')
     search_fields = ('title',)
     inlines = [ArticleImageInline]
+
+    def save_model(self, request, obj, form, change):
+        """Award 4 coins to author when article is approved."""
+        award_coins = (
+            change
+            and 'is_approved' in form.changed_data
+            and obj.is_approved
+            and obj.author
+        )
+        super().save_model(request, obj, form, change)
+        if award_coins:
+            profile, _ = UserProfile.objects.get_or_create(
+                user=obj.author
+            )
+            profile.coins += 4
+            profile.save()
 
 
 @admin.register(AITask)

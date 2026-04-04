@@ -9,9 +9,38 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages as django_messages
 
-from .models import UserProfile, TheoryItem, GameSession
-from .forms import TheorySubmitForm, HexAnswerForm
+from .models import UserProfile, TheoryItem, AITask, GameSession
+from .forms import (
+    TheorySubmitForm, HexAnswerForm, AIAnswerForm, HSLAnswerForm
+)
 
+MAX_RGB_DISTANCE = 441.67
+MAX_HSL_DISTANCE = math.sqrt(3)
+
+
+def calculate_game_points(accuracy):
+    """Convert accuracy percentage to coin reward."""
+    if accuracy >= 90:
+        return 5
+    if accuracy >= 70:
+        return 3
+    if accuracy >= 50:
+        return 2
+    return 0
+
+
+def _update_coins(user, points, game_type):
+    """Save coins and create game session record."""
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.coins += points
+    profile.save()
+    GameSession.objects.create(
+        user=user, game_type=game_type, points_earned=points
+    )
+    return profile
+
+
+# --- Pages ---
 
 def home(request):
     """Display the main dashboard page."""
@@ -55,7 +84,7 @@ def theory_detail(request, pk):
         else:
             django_messages.error(
                 request,
-                'Недостаточно монет! Пройдите тренажеры для заработка.'
+                'Недостаточно монет! Заработайте в тренажерах.'
             )
             return redirect('theory_list')
 
@@ -68,16 +97,17 @@ def theory_detail(request, pk):
 
 @login_required
 def theory_submit(request):
-    """Handle article submission."""
+    """Handle article submission with author tracking."""
     if request.method == 'POST':
         form = TheorySubmitForm(request.POST)
         if form.is_valid():
             theory = form.save(commit=False)
+            theory.author = request.user
             theory.is_approved = False
             theory.save()
             django_messages.success(
                 request,
-                'Спасибо! Ваша статья отправлена на модерацию.'
+                'Спасибо! Статья отправлена на модерацию.'
             )
             return redirect('theory_list')
     else:
@@ -85,8 +115,10 @@ def theory_submit(request):
     return render(request, 'core/theory_submit.html', {'form': form})
 
 
+# --- HEX game ---
+
 def generate_random_hex():
-    """Generate a random HEX color code string."""
+    """Generate a random HEX color code."""
     red = random.randint(0, 255)
     green = random.randint(0, 255)
     blue = random.randint(0, 255)
@@ -95,27 +127,18 @@ def generate_random_hex():
 
 def hex_color_distance(hex1, hex2):
     """Calculate Euclidean distance between two HEX colors."""
-    r1, g1, b1 = int(hex1[1:3], 16), int(hex1[3:5], 16), int(hex1[5:7], 16)
-    r2, g2, b2 = int(hex2[1:3], 16), int(hex2[3:5], 16), int(hex2[5:7], 16)
+    r1 = int(hex1[1:3], 16)
+    g1 = int(hex1[3:5], 16)
+    b1 = int(hex1[5:7], 16)
+    r2 = int(hex2[1:3], 16)
+    g2 = int(hex2[3:5], 16)
+    b2 = int(hex2[5:7], 16)
     return math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2)
-
-
-def calculate_hex_points(accuracy):
-    """Convert accuracy percentage to coin reward."""
-    if accuracy >= 90:
-        return 5
-    if accuracy >= 70:
-        return 3
-    if accuracy >= 50:
-        return 2
-    return 0
 
 
 @login_required
 def hex_game(request):
-    """Handle the HEX Sniper game."""
-    max_rgb_distance = 441.67
-
+    """Handle the HEX Sniper game with quadratic scoring."""
     if request.method == 'POST':
         form = HexAnswerForm(request.POST)
         correct_hex = request.session.get('correct_hex', '#000000')
@@ -123,20 +146,11 @@ def hex_game(request):
         if form.is_valid():
             user_hex = form.cleaned_data['hex_code']
             distance = hex_color_distance(correct_hex, user_hex)
-            accuracy = max(0, 100 - (distance / max_rgb_distance * 100))
-            points = calculate_hex_points(accuracy)
+            ratio = distance / MAX_RGB_DISTANCE
+            accuracy = max(0, 100 * (1 - ratio) ** 2)
+            points = calculate_game_points(accuracy)
 
-            profile, _ = UserProfile.objects.get_or_create(
-                user=request.user
-            )
-            profile.coins += points
-            profile.save()
-
-            GameSession.objects.create(
-                user=request.user,
-                game_type='HEX',
-                points_earned=points,
-            )
+            _update_coins(request.user, points, 'HEX')
 
             new_color = generate_random_hex()
             request.session['correct_hex'] = new_color
@@ -163,6 +177,123 @@ def hex_game(request):
         'color': color,
     })
 
+
+# --- HSL game ---
+
+def hsl_color_distance(h1, s1, l1, h2, s2, l2):
+    """Calculate normalized distance between two HSL colors."""
+    hue_diff = min(abs(h1 - h2), 360 - abs(h1 - h2))
+    h_norm = hue_diff / 180.0
+    s_norm = abs(s1 - s2) / 100.0
+    l_norm = abs(l1 - l2) / 100.0
+    return math.sqrt(h_norm ** 2 + s_norm ** 2 + l_norm ** 2)
+
+
+@login_required
+def hsl_game(request):
+    """Handle the HSL Master game with quadratic scoring."""
+    if request.method == 'POST':
+        form = HSLAnswerForm(request.POST)
+        cor_h = request.session.get('correct_h', 0)
+        cor_s = request.session.get('correct_s', 50)
+        cor_l = request.session.get('correct_l', 50)
+
+        if form.is_valid():
+            usr_h = form.cleaned_data['hue']
+            usr_s = form.cleaned_data['saturation']
+            usr_l = form.cleaned_data['lightness']
+
+            distance = hsl_color_distance(
+                cor_h, cor_s, cor_l, usr_h, usr_s, usr_l
+            )
+            ratio = distance / MAX_HSL_DISTANCE
+            accuracy = max(0, 100 * (1 - ratio) ** 2)
+            points = calculate_game_points(accuracy)
+
+            _update_coins(request.user, points, 'HSL')
+
+            new_h = random.randint(0, 359)
+            new_s = random.randint(30, 90)
+            new_l = random.randint(25, 75)
+            request.session['correct_h'] = new_h
+            request.session['correct_s'] = new_s
+            request.session['correct_l'] = new_l
+
+            return render(request, 'core/hsl_game.html', {
+                'form': HSLAnswerForm(),
+                'h': new_h, 's': new_s, 'l': new_l,
+                'result': True,
+                'correct_h': cor_h, 'correct_s': cor_s,
+                'correct_l': cor_l,
+                'user_h': usr_h, 'user_s': usr_s,
+                'user_l': usr_l,
+                'accuracy': round(accuracy, 1),
+                'points': points,
+            })
+
+        return render(request, 'core/hsl_game.html', {
+            'form': form,
+            'h': cor_h, 's': cor_s, 'l': cor_l,
+        })
+
+    hue = random.randint(0, 359)
+    sat = random.randint(30, 90)
+    lit = random.randint(25, 75)
+    request.session['correct_h'] = hue
+    request.session['correct_s'] = sat
+    request.session['correct_l'] = lit
+    return render(request, 'core/hsl_game.html', {
+        'form': HSLAnswerForm(),
+        'h': hue, 's': sat, 'l': lit,
+    })
+
+
+# --- AI game ---
+
+@login_required
+def ai_game(request):
+    """Handle the AI Detector game."""
+    all_tasks = list(AITask.objects.all())
+    if not all_tasks:
+        django_messages.info(
+            request, 'AI-задачи ещё не загружены. Попробуйте позже.'
+        )
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = AIAnswerForm(request.POST)
+        task_id = request.POST.get('task_id')
+        task = get_object_or_404(AITask, pk=task_id)
+
+        if form.is_valid():
+            is_correct = (
+                form.cleaned_data['answer'] == task.correct_answer
+            )
+            points = 1 if is_correct else 0
+            _update_coins(request.user, points, 'AI')
+
+            new_task = random.choice(all_tasks)
+            return render(request, 'core/ai_game.html', {
+                'task': new_task,
+                'form': AIAnswerForm(),
+                'result': True,
+                'is_correct': is_correct,
+                'points': points,
+                'explanation': task.explanation,
+            })
+
+        task = random.choice(all_tasks)
+        return render(request, 'core/ai_game.html', {
+            'task': task, 'form': form,
+        })
+
+    task = random.choice(all_tasks)
+    return render(request, 'core/ai_game.html', {
+        'task': task, 'form': AIAnswerForm(),
+    })
+
+
+# --- Auth ---
 
 def register_view(request):
     """Handle new user registration."""

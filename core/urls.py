@@ -11,6 +11,8 @@ urlpatterns = [
     path('theory/<int:pk>/', views.theory_detail, name='theory_detail'),
     path('theory/submit/', views.theory_submit, name='theory_submit'),
     path('play/hex/', views.hex_game, name='hex_game'),
+    path('play/hsl/', views.hsl_game, name='hsl_game'),
+    path('play/ai/', views.ai_game, name='ai_game'),
     path(
         'login/',
         auth_views.LoginView.as_view(template_name='core/login.html'),
