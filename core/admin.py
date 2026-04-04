@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 from .models import (
-    UserProfile, TheoryItem, ArticleImage, AITask, GameSession
+    UserProfile, TheoryItem, ArticleImage, GameSession
 )
 
 
@@ -56,13 +56,6 @@ class TheoryItemAdmin(admin.ModelAdmin):
             )
             profile.coins += 4
             profile.save()
-
-
-@admin.register(AITask)
-class AITaskAdmin(admin.ModelAdmin):
-    """Admin view for AI detection tasks."""
-
-    list_display = ('id', 'correct_answer')
 
 
 @admin.register(GameSession)

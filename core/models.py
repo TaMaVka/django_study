@@ -72,36 +72,11 @@ class UserProfile(models.Model):
         return f'{self.user.username} ({self.coins} монет)'
 
 
-class AITask(models.Model):
-    """Task with two face images for AI detection game."""
-
-    ANSWER_CHOICES = [('A', 'Изображение A'), ('B', 'Изображение B')]
-
-    image_a = models.ImageField(
-        upload_to='ai_faces/', verbose_name='Изображение A'
-    )
-    image_b = models.ImageField(
-        upload_to='ai_faces/', verbose_name='Изображение B'
-    )
-    correct_answer = models.CharField(
-        max_length=1, choices=ANSWER_CHOICES, verbose_name='Где ИИ'
-    )
-    explanation = models.TextField(verbose_name='Объяснение')
-
-    class Meta:
-        verbose_name = 'AI-задача'
-        verbose_name_plural = 'AI-задачи'
-
-    def __str__(self):
-        return f'AI-задача #{self.pk}'
-
-
 class GameSession(models.Model):
     """Record of a single game played by a user."""
 
     GAME_TYPES = [
         ('HEX', 'HEX-Снайпер'),
-        ('AI', 'Детектор ИИ'),
         ('HSL', 'HSL-Мастер'),
     ]
 

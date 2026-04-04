@@ -9,10 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages as django_messages
 
-from .models import UserProfile, TheoryItem, AITask, GameSession
-from .forms import (
-    TheorySubmitForm, HexAnswerForm, AIAnswerForm, HSLAnswerForm
-)
+from .models import UserProfile, TheoryItem, GameSession
+from .forms import TheorySubmitForm, HexAnswerForm, HSLAnswerForm
 
 MAX_RGB_DISTANCE = 441.67
 MAX_HSL_DISTANCE = math.sqrt(3)
@@ -245,51 +243,6 @@ def hsl_game(request):
     return render(request, 'core/hsl_game.html', {
         'form': HSLAnswerForm(),
         'h': hue, 's': sat, 'l': lit,
-    })
-
-
-# --- AI game ---
-
-@login_required
-def ai_game(request):
-    """Handle the AI Detector game."""
-    all_tasks = list(AITask.objects.all())
-    if not all_tasks:
-        django_messages.info(
-            request, 'AI-задачи ещё не загружены. Попробуйте позже.'
-        )
-        return redirect('home')
-
-    if request.method == 'POST':
-        form = AIAnswerForm(request.POST)
-        task_id = request.POST.get('task_id')
-        task = get_object_or_404(AITask, pk=task_id)
-
-        if form.is_valid():
-            is_correct = (
-                form.cleaned_data['answer'] == task.correct_answer
-            )
-            points = 1 if is_correct else 0
-            _update_coins(request.user, points, 'AI')
-
-            new_task = random.choice(all_tasks)
-            return render(request, 'core/ai_game.html', {
-                'task': new_task,
-                'form': AIAnswerForm(),
-                'result': True,
-                'is_correct': is_correct,
-                'points': points,
-                'explanation': task.explanation,
-            })
-
-        task = random.choice(all_tasks)
-        return render(request, 'core/ai_game.html', {
-            'task': task, 'form': form,
-        })
-
-    task = random.choice(all_tasks)
-    return render(request, 'core/ai_game.html', {
-        'task': task, 'form': AIAnswerForm(),
     })
 
 

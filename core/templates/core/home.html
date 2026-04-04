@@ -10,13 +10,13 @@
             Тренажер визуальной насмотренности
         </h1>
         <p class="lead text-muted mb-4">
-            Угадывайте цвета, подбирайте оттенки и учитесь
-            отличать ИИ-изображения от настоящих фотографий.
+            Тренируйте визуальную грамотность: угадывайте цвета
+            по HEX-коду и подбирайте оттенки в HSL.
         </p>
 
         {% if user.is_authenticated %}
         <div class="row g-3 mb-4">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="card text-center border-warning h-100">
                     <div class="card-body">
                         <h2 class="text-warning">
@@ -26,11 +26,14 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="card text-center h-100 card-game">
                     <div class="card-body d-flex flex-column
                                 justify-content-center">
-                        <h6><i class="bi bi-palette"></i> HEX-Снайпер</h6>
+                        <h5><i class="bi bi-palette"></i> HEX-Снайпер</h5>
+                        <p class="text-muted small">
+                            Угадай HEX-код цвета
+                        </p>
                         <a href="{% url 'hex_game' %}"
                            class="btn btn-sm btn-outline-success mt-auto">
                             Играть
@@ -38,25 +41,16 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="card text-center h-100 card-game">
                     <div class="card-body d-flex flex-column
                                 justify-content-center">
-                        <h6><i class="bi bi-sliders"></i> HSL-Мастер</h6>
+                        <h5><i class="bi bi-sliders"></i> HSL-Мастер</h5>
+                        <p class="text-muted small">
+                            Подбери оттенок ползунками
+                        </p>
                         <a href="{% url 'hsl_game' %}"
                            class="btn btn-sm btn-outline-primary mt-auto">
-                            Играть
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center h-100 card-game">
-                    <div class="card-body d-flex flex-column
-                                justify-content-center">
-                        <h6><i class="bi bi-robot"></i> Детектор ИИ</h6>
-                        <a href="{% url 'ai_game' %}"
-                           class="btn btn-sm btn-outline-danger mt-auto">
                             Играть
                         </a>
                     </div>
@@ -108,8 +102,7 @@
             </div>
             <div class="card-body">
                 <p class="card-text">
-                    Теория для юных и начинающих дизайнеров. Здесь вы можете узнать о цветах, ИИ-генерации
-                    и визуальном восприятии, а также опубликовать свои статьи.
+                    Теория о цветах и визуальном восприятии.
                 </p>
                 <a href="{% url 'theory_list' %}"
                    class="btn btn-outline-primary">Каталог</a>

@@ -72,17 +72,6 @@ class HexAnswerForm(forms.Form):
         return value.upper()
 
 
-class AIAnswerForm(forms.Form):
-    """Form for selecting which image is AI-generated."""
-
-    CHOICES = [('A', 'Изображение A'), ('B', 'Изображение B')]
-    answer = forms.ChoiceField(
-        choices=CHOICES,
-        widget=forms.RadioSelect,
-        label='Какое лицо сгенерировано ИИ?',
-    )
-
-
 class HSLAnswerForm(forms.Form):
     """Form for submitting HSL color values via sliders."""
 
